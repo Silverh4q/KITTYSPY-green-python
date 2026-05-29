@@ -8,7 +8,7 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_example_NativeDumper_stringFromJNI(
+Java_com_kittyspace_NativeDumper_stringFromJNI(
         JNIEnv* env,
         jobject /* this */) {
     std::string hello = "Hello from Kitty Dumper Native Engine";
@@ -16,7 +16,7 @@ Java_com_example_NativeDumper_stringFromJNI(
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_example_NativeDumper_verifyElfHeader(
+Java_com_kittyspace_NativeDumper_verifyElfHeader(
         JNIEnv* env,
         jobject /* this */,
         jstring filePathObj) {
@@ -44,7 +44,7 @@ Java_com_example_NativeDumper_verifyElfHeader(
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_example_NativeDumper_verifyGlobalMetadataHeader(
+Java_com_kittyspace_NativeDumper_verifyGlobalMetadataHeader(
         JNIEnv* env,
         jobject /* this */,
         jstring filePathObj) {
@@ -78,7 +78,7 @@ Java_com_example_NativeDumper_verifyGlobalMetadataHeader(
 #include "Dobby.h"
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_example_NativeDumper_initializeVirtualLaunch(
+Java_com_kittyspace_NativeDumper_initializeVirtualLaunch(
         JNIEnv* env,
         jobject /* this */,
         jstring packageNameObj,
@@ -102,7 +102,7 @@ Java_com_example_NativeDumper_initializeVirtualLaunch(
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_example_NativeDumper_patchMemorySimulation(
+Java_com_kittyspace_NativeDumper_patchMemorySimulation(
         JNIEnv* env,
         jobject /* this */,
         jstring packageNameObj,
@@ -121,7 +121,7 @@ Java_com_example_NativeDumper_patchMemorySimulation(
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_example_NativeDumper_dobyInlineHookSimulation(
+Java_com_kittyspace_NativeDumper_dobyInlineHookSimulation(
         JNIEnv* env,
         jobject /* this */,
         jstring packageNameObj,

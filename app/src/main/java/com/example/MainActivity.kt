@@ -162,6 +162,85 @@ fun GlowPawPrint(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun CyberGlitchText(text: String, modifier: Modifier = Modifier, color: Color = Color(0xFF00E676)) {
+    Box(contentAlignment = Alignment.Center, modifier = modifier) {
+        // Red cyan color aberration offset layers
+        Text(
+            text = text,
+            color = Color.Red.copy(alpha = 0.5f),
+            fontSize = 25.sp,
+            fontWeight = FontWeight.ExtraBold,
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 3.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.offset(x = (-1.5).dp, y = (0.5).dp)
+        )
+        Text(
+            text = text,
+            color = Color.Cyan.copy(alpha = 0.5f),
+            fontSize = 25.sp,
+            fontWeight = FontWeight.ExtraBold,
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 3.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.offset(x = (1.5).dp, y = (-0.5).dp)
+        )
+        Text(
+            text = text,
+            color = color,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 3.sp,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun CyberHackerCard(
+    modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {},
+    content: @Composable BoxScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(topStart = 16.dp, bottomEnd = 16.dp))
+            .background(Color(0xFF04060B)) // deep black slate matte texture
+            .border(
+                border = BorderStroke(
+                    width = 1.6.dp,
+                    color = if (isSelected) Color(0xFF00E676) else Color.White.copy(alpha = 0.09f)
+                ),
+                shape = RoundedCornerShape(topStart = 16.dp, bottomEnd = 16.dp)
+            )
+            .clickable { onClick() }
+            .drawBehind {
+                // Diagonal scanline glow passes to establish extreme cyberpunk UI aesthetics
+                val w = size.width
+                val h = size.height
+                drawLine(
+                    color = Color(0xFF00E676).copy(alpha = 0.25f),
+                    start = Offset(w - 14.dp.toPx(), 4.dp.toPx()),
+                    end = Offset(w - 4.dp.toPx(), 4.dp.toPx()),
+                    strokeWidth = 2.dp.toPx()
+                )
+                drawLine(
+                    color = Color(0xFF00E676).copy(alpha = 0.25f),
+                    start = Offset(w - 4.dp.toPx(), 4.dp.toPx()),
+                    end = Offset(w - 4.dp.toPx(), 14.dp.toPx()),
+                    strokeWidth = 2.dp.toPx()
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        content()
+    }
+}
+
+@Composable
 fun KittyspyAngledHeader() {
     Column(
         modifier = Modifier
@@ -205,15 +284,10 @@ fun KittyspyAngledHeader() {
                 )
             }
             
-            Text(
+            CyberGlitchText(
                 text = "KITTYSPY_OS",
-                color = Color(0xFF00E676),
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                letterSpacing = 3.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 6.dp)
+                modifier = Modifier.padding(bottom = 6.dp),
+                color = Color(0xFF00E676)
             )
         }
         
@@ -366,6 +440,134 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
         }
     }
 
+    // Target automatic scanning variables to feed dumper inputs on selected app click
+    var activeScanningApp by remember { mutableStateOf<KittyAppEntity?>(null) }
+    var scanStatusText by remember { mutableStateOf("") }
+    var scanErrorDialogText by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(activeScanningApp) {
+        if (activeScanningApp == null) return@LaunchedEffect
+        val app = activeScanningApp!!
+        val apkFile = File(app.sourceDir)
+        
+        scanStatusText = "[SYS]::INITIATING_GAME_CORE_PASS...\n"
+        delay(300)
+        
+        if (!apkFile.exists() || !apkFile.canRead()) {
+            scanErrorDialogText = "Cannot locate package content at physical installation path: ${app.sourceDir}. Please load manually."
+            activeScanningApp = null
+            return@LaunchedEffect
+        }
+
+        scanStatusText += "[SYS]::LOCKED_ON_TARGET: ${app.appName.uppercase()}(PKG: ${app.packageName})\n"
+        delay(300)
+        scanStatusText += "[SYS]::PARSING_ZIP_CONTAINER_METADATA...\n"
+        delay(400)
+
+        var hasUnity = false
+        var hasUnreal = false
+
+        try {
+            java.util.zip.ZipFile(apkFile).use { zip ->
+                val entries = zip.entries()
+                while (entries.hasMoreElements()) {
+                    val entry = entries.nextElement()
+                    val pathName = entry.name
+                    if (pathName.endsWith("global-metadata.dat", ignoreCase = true)) {
+                        hasUnity = true
+                    }
+                    if (pathName.contains("libUE4.so", ignoreCase = true) || pathName.contains("libue4.so", ignoreCase = true)) {
+                        hasUnreal = true
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            scanErrorDialogText = "Error scanning ZIP container headers: ${e.message}"
+            activeScanningApp = null
+            return@LaunchedEffect
+        }
+
+        if (hasUnity) {
+            scanStatusText += "[SYS]::ENGINE_DECODED: UNITY_ENGINE (IL2CPP)\n"
+            scanStatusText += "[SYS]::EXTRACTING_IL2CPP_METADATA_BINARIES...\n"
+            delay(500)
+            
+            try {
+                val targetCacheDir = File(context.cacheDir, "auto_detect_unity")
+                targetCacheDir.mkdirs()
+                
+                val result = com.example.dumper.KittyDumperEngine.extractUnityFromApk(app.sourceDir, targetCacheDir) { line ->
+                    scanStatusText += "$line\n"
+                }
+                
+                val metaFile = result.metadataFile
+                val libsoFile = result.libil2cppFile
+                
+                if (metaFile != null && metaFile.exists() && libsoFile != null && libsoFile.exists()) {
+                    scanStatusText += "\n[SYS]::SUCCESS: LOADED AND BINDED COMPILING ASSETS!\n"
+                    delay(300)
+                    
+                    selectedUnityMetadataUri = Uri.fromFile(metaFile)
+                    selectedUnityMetadataName = "global-metadata.dat [AUTO-LOADED]"
+                    selectedUnityMetadataSize = metaFile.length()
+                    
+                    selectedUnityLibUri = Uri.fromFile(libsoFile)
+                    selectedUnityLibName = "libil2cpp.so [AUTO-LOADED]"
+                    selectedUnityLibSize = libsoFile.length()
+                    
+                    selectedSpaceApp = app
+                    activeScreen = Screen.KITTYDUMPER
+                    selectedTab = 0
+                    com.example.KittyDumpManager.addLog("[SYS]::AUTO-LINKED UNITY TARGET [${app.appName.uppercase()}]")
+                    Toast.makeText(context, "Unity game assets loaded successfully!", Toast.LENGTH_SHORT).show()
+                } else {
+                    scanErrorDialogText = "Failed to extract required Unity IL2CPP assets: ${result.error ?: "No matching architecture found (ARM64 usually preferred)"}"
+                }
+            } catch (e: Exception) {
+                scanErrorDialogText = "IL2CPP extraction thrown error: ${e.message}"
+            }
+        } else if (hasUnreal) {
+            scanStatusText += "[SYS]::ENGINE_DECODED: UNREAL_ENGINE\n"
+            scanStatusText += "[SYS]::EXTRACTING_UNREAL_LIBRARY...\n"
+            delay(500)
+            
+            try {
+                val targetCacheDir = File(context.cacheDir, "auto_detect_unreal")
+                targetCacheDir.mkdirs()
+                
+                val result = com.example.dumper.KittyDumperEngine.extractUnrealFromApk(app.sourceDir, targetCacheDir) { line ->
+                    scanStatusText += "$line\n"
+                }
+                
+                val libFile = result.libue4File
+                if (libFile != null && libFile.exists()) {
+                    scanStatusText += "\n[SYS]::SUCCESS: LOADED AND BINDED UNREAL ENGINE!\n"
+                    delay(300)
+                    
+                    selectedUnrealLibUri = Uri.fromFile(libFile)
+                    selectedUnrealLibName = "libUE4.so [AUTO-LOADED]"
+                    selectedUnrealLibSize = libFile.length()
+                    
+                    selectedSpaceApp = app
+                    activeScreen = Screen.KITTYDUMPER
+                    selectedTab = 1
+                    com.example.KittyDumpManager.addLog("[SYS]::AUTO-LINKED UNREAL TARGET [${app.appName.uppercase()}]")
+                    Toast.makeText(context, "Unreal game library loaded successfully!", Toast.LENGTH_SHORT).show()
+                } else {
+                    scanErrorDialogText = "Failed to extract sub-architecture from Unreal APK: ${result.error ?: "No matching architecture found (ARM64 usually preferred)"}"
+                }
+            } catch (e: Exception) {
+                scanErrorDialogText = "Unreal extraction thrown error: ${e.message}"
+            }
+        } else {
+            scanStatusText += "\n[SYS]::ERROR: NOT_A_SUPPORTED_ENGINE!\n"
+            delay(500)
+            scanErrorDialogText = "The selected game does not contain valid Unity (IL2CPP) or Unreal Engine signatures. Direct binary extraction failed."
+        }
+        
+        activeScanningApp = null
+    }
+
     // Launch environment hook simulator coroutine trigger
     LaunchedEffect(launchingApp) {
         if (launchingApp == null) {
@@ -443,9 +645,9 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                 // GLASSY CONTAINER GRID (Only "+" add button and actual games added)
                 val gridComposables = mutableListOf<@Composable () -> Unit>()
                 
-                // Bold "+" button inside glassy morphic box
+                // Bold "+" button inside cyber hacker card
                 gridComposables.add {
-                    GlassyContainer(
+                    CyberHackerCard(
                         onClick = { showAddAppDialog = true }
                     ) {
                         Icon(
@@ -457,18 +659,17 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                     }
                 }
                 
-                // Process added apps mapping them into exact same glassy style
+                // Process added apps mapping them into exact same cyber design
                 kittySpaceApps.forEach { app ->
                     val appIcon = rememberAppIcon(context, app.packageName)
                     val isSelected = selectedSpaceApp?.packageName == app.packageName
                     
                     gridComposables.add {
-                        GlassyContainer(
+                        CyberHackerCard(
                             isSelected = isSelected,
                             onClick = {
-                                selectedSpaceApp = if (isSelected) null else app
-                                // Launch inside Virtual sandbox environment overlay
-                                launchingApp = app
+                                // Trigger automated file extraction scanner & auto-fill inputs directly
+                                activeScanningApp = app
                             }
                         ) {
                             Column(
@@ -507,7 +708,7 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 
                                 Text(
-                                    text = app.appName,
+                                    text = app.appName.uppercase(),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = FontFamily.Monospace,
@@ -517,7 +718,7 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                                     textAlign = TextAlign.Center
                                 )
                                 Text(
-                                    text = "pkg: " + app.packageName,
+                                    text = "0x" + app.packageName.hashCode().toString(16).uppercase().take(4) + " :: SEC",
                                     fontSize = 8.sp,
                                     fontFamily = FontFamily.Monospace,
                                     color = TextMuted,
@@ -813,8 +1014,8 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                                         val libUri = selectedUnityLibUri
                                         if (metaUri != null && libUri != null) {
                                             try {
-                                                val mStr = context.contentResolver.openInputStream(metaUri)
-                                                val lStr = context.contentResolver.openInputStream(libUri)
+                                                val mStr = openStreamFromUri(context, metaUri)
+                                                val lStr = openStreamFromUri(context, libUri)
                                                 if (mStr != null && lStr != null) {
                                                     viewModel.dumpUnityFromStorage(mStr, lStr)
                                                 }
@@ -940,7 +1141,7 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                                         val libUri = selectedUnrealLibUri
                                         if (libUri != null) {
                                             try {
-                                                val lStr = context.contentResolver.openInputStream(libUri)
+                                                val lStr = openStreamFromUri(context, libUri)
                                                 if (lStr != null) {
                                                     viewModel.dumpUnrealFromStorage(lStr)
                                                 }
@@ -1061,54 +1262,246 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // BOTTOM NAVIGATION BAR (MATCHES EXACTLY THE PROTO IMAGE DESIGN)
-            Row(
+            // BOTTOM NAVIGATION BAR (CYBERNETIC GLASSY TABS WITH NEON DOT INDICATORS)
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 12.dp)
+                    .height(68.dp)
+                    .padding(top = 8.dp, bottom = 4.dp)
                     .navigationBarsPadding(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF04060B)),
+                border = BorderStroke(1.2.dp, BoundaryGray),
+                shape = RoundedCornerShape(14.dp)
             ) {
-                // KITTYSPACE Tab Button
-                Button(
-                    onClick = { activeScreen = Screen.KITTYSPACE },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (activeScreen == Screen.KITTYSPACE) Color(0xFF00E676) else Color(0xFF13131B)
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.2.dp, if (activeScreen == Screen.KITTYSPACE) Color(0xFF00E676) else Color.White.copy(alpha = 0.12f))
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // KITTYSPACE Tab Selector Button
+                    val isSpaceActive = activeScreen == Screen.KITTYSPACE
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable { activeScreen = Screen.KITTYSPACE },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = "KittySpace",
+                                tint = if (isSpaceActive) Color(0xFF00E676) else TextMuted,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "KITTYSPACE",
+                                color = if (isSpaceActive) Color(0xFF00E676) else TextMuted,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 11.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            // Glistening active line
+                            Box(
+                                modifier = Modifier
+                                    .width(28.dp)
+                                    .height(2.5.dp)
+                                    .clip(RoundedCornerShape(1.dp))
+                                    .background(if (isSpaceActive) Color(0xFF00E676) else Color.Transparent)
+                            )
+                        }
+                    }
+
+                    // Divider segment
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(24.dp)
+                            .background(BoundaryGray)
+                    )
+
+                    // KITTYDUMPER Tab Selector Button
+                    val isDumperActive = activeScreen == Screen.KITTYDUMPER
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable { activeScreen = Screen.KITTYDUMPER },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Build,
+                                contentDescription = "KittyDumper",
+                                tint = if (isDumperActive) Color(0xFF00E676) else TextMuted,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "KITTYDUMPER",
+                                color = if (isDumperActive) Color(0xFF00E676) else TextMuted,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 11.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            // Glistening active line
+                            Box(
+                                modifier = Modifier
+                                    .width(28.dp)
+                                    .height(2.5.dp)
+                                    .clip(RoundedCornerShape(1.dp))
+                                    .background(if (isDumperActive) Color(0xFF00E676) else Color.Transparent)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // AUTOMATIC CORE EXTRACTION METADATA SCAN DIALOG (HACKER TERMINAL HUD OVERLAY)
+    if (activeScanningApp != null) {
+        Dialog(onDismissRequest = { /* Prevent cancellation to preserve integrity of background operations */ }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.6f),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF04060C)),
+                border = BorderStroke(1.5.dp, Color(0xFF00E676)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(18.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color(0xFF00E676),
+                            strokeWidth = 2.5.dp
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "SYS_HEX_METADATA_EXTRACTOR",
+                            color = Color(0xFF00E676),
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            letterSpacing = 1.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    
+                    // Live console log trace inside dialogue
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                            .border(1.dp, BoundaryGray, RoundedCornerShape(8.dp))
+                            .padding(12.dp)
+                    ) {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            item {
+                                Text(
+                                    text = scanStatusText,
+                                    color = Color(0xFF00E676),
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 11.sp,
+                                    lineHeight = 15.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "KITTYSPACE",
-                        color = if (activeScreen == Screen.KITTYSPACE) Color.Black else Color(0xFF00E676),
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 1.sp,
-                        fontSize = 14.sp
+                        text = "DECODING APK ASSETS FOR NATIVE COMPILATION...",
+                        color = TextMuted,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
                 }
-                
-                // KITTYDUMPER Tab Button
-                Button(
-                    onClick = { activeScreen = Screen.KITTYDUMPER },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (activeScreen == Screen.KITTYDUMPER) Color(0xFF00E676) else Color(0xFF13131B)
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.2.dp, if (activeScreen == Screen.KITTYDUMPER) Color(0xFF00E676) else Color.White.copy(alpha = 0.12f))
+            }
+        }
+    }
+
+    // DISMISSABLE SYSTEM SCAN ERROR WARNING DIALOG (NOT-A-GAME ALERT)
+    if (scanErrorDialogText != null) {
+        Dialog(onDismissRequest = { scanErrorDialogText = null }) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0B0404)),
+                border = BorderStroke(1.5.dp, Color.Red),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "KITTYDUMPER",
-                        color = if (activeScreen == Screen.KITTYDUMPER) Color.Black else Color.White,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 1.sp,
-                        fontSize = 14.sp
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Security Alert",
+                        tint = Color.Red,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(Color.Red.copy(alpha = 0.15f), CircleShape)
+                            .padding(6.dp)
                     )
+                    
+                    Spacer(modifier = Modifier.height(14.dp))
+                    
+                    Text(
+                        text = "CRITICAL_ENGINE_MISMATCH",
+                        color = Color.Red,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        letterSpacing = 1.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = scanErrorDialogText!!,
+                        color = TextLight,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Button(
+                        onClick = { scanErrorDialogText = null },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red.copy(alpha = 0.8f)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "ACKNOWLEDGE ALERT",
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
                 }
             }
         }
@@ -1446,4 +1839,18 @@ fun shareDumpFileContents(context: Context, file: File) {
     } catch (e: Exception) {
         Toast.makeText(context, "Failed to initialize standard share provider: ${e.message}", Toast.LENGTH_SHORT).show()
     }
+}
+
+// Robust loading helper supporting both document providers streams and direct file protocols
+fun openStreamFromUri(context: Context, uri: Uri): java.io.InputStream? {
+    if (uri.scheme == "file") {
+        val path = uri.path
+        if (path != null) {
+            val file = File(path)
+            if (file.exists() && file.canRead()) {
+                return java.io.FileInputStream(file)
+            }
+        }
+    }
+    return context.contentResolver.openInputStream(uri)
 }

@@ -439,6 +439,7 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
 
     // Target automatic scanning variables to feed dumper inputs on selected app click
     var activeScanningApp by remember { mutableStateOf<KittyAppEntity?>(null) }
+    var pendingChoiceApp by remember { mutableStateOf<KittyAppEntity?>(null) }
     var scanStatusText by remember { mutableStateOf("") }
     var scanErrorDialogText by remember { mutableStateOf<String?>(null) }
 
@@ -527,7 +528,7 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                     selectedUnityLibSize = libsoFile.length()
                     
                     selectedSpaceApp = app
-                    activeScreen = Screen.KITTYDUMPER
+                    pendingChoiceApp = app
                     selectedTab = 0
                     com.kittyspace.KittyDumpManager.addLog("[SYS]::AUTO-LINKED UNITY TARGET [${app.appName.uppercase()}]")
                     Toast.makeText(context, "Unity game assets loaded successfully!", Toast.LENGTH_SHORT).show()
@@ -560,7 +561,7 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                     selectedUnrealLibSize = libFile.length()
                     
                     selectedSpaceApp = app
-                    activeScreen = Screen.KITTYDUMPER
+                    pendingChoiceApp = app
                     selectedTab = 1
                     com.kittyspace.KittyDumpManager.addLog("[SYS]::AUTO-LINKED UNREAL TARGET [${app.appName.uppercase()}]")
                     Toast.makeText(context, "Unreal game library loaded successfully!", Toast.LENGTH_SHORT).show()
@@ -1412,6 +1413,74 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                                     .background(if (isDumperActive) Color(0xFF00E676) else Color.Transparent)
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // POST SCAN CHOICE DIALOG
+    if (pendingChoiceApp != null) {
+        Dialog(onDismissRequest = { pendingChoiceApp = null }) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF04060C)),
+                border = BorderStroke(1.dp, Color(0xFFB388FF)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "TARGET ISOLATED",
+                        color = Color(0xFFB388FF),
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Application components extracted and memory bounds identified. How would you like to proceed?",
+                        color = TextLight,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Button(
+                        onClick = { 
+                            activeScreen = Screen.KITTYDUMPER
+                            pendingChoiceApp = null 
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = BackgroundBlack),
+                        border = BorderStroke(1.dp, AccentPink),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("1. CONTINUE TO DUMP", color = AccentPink, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    
+                    Button(
+                        onClick = { 
+                            launchingApp = pendingChoiceApp
+                            pendingChoiceApp = null 
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = BackgroundBlack),
+                        border = BorderStroke(1.dp, Color(0xFF00E676)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("2. LAUNCH (INJECT)", color = Color(0xFF00E676), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    
+                    OutlinedButton(
+                        onClick = { pendingChoiceApp = null },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextMuted),
+                        border = BorderStroke(1.dp, BoundaryGray),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("3. ABORT", fontFamily = FontFamily.Monospace, fontSize = 12.sp)
                     }
                 }
             }

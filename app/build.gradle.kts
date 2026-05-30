@@ -20,9 +20,20 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     externalNativeBuild {
-      cmake {
-        cppFlags("-std=c++17")
-      }
+       cmake {
+        cppFlags += "-std=c++17"
+       }
+     }
+    ndk {
+        abiFilters.add("x86_64")
+        abiFilters.add("arm64-v8a")
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path = file("src/main/cpp/CMakeLists.txt")
+      version = "3.22.0"
     }
   }
 
@@ -73,6 +84,16 @@ android {
   testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 
+plugins {
+    id("com.github.megatronking.stringfog")
+}
+
+stringfog {
+    implementation = "com.github.megatronking.stringfog.xor.StringFogImpl"
+    packageName = "com.github.megatronking.stringfog"
+    enable = true
+    fogPackages = listOf("com.kittyspace")
+}
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
 // to match the convention used in Web projects.
 secrets {

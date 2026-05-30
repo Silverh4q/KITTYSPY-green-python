@@ -30,7 +30,8 @@ val MOCK_GAME_LOGS = listOf(
 @Composable
 fun FloatingMenuContent(
     appName: String,
-    onCloseMenu: () -> Unit
+    onCloseMenu: () -> Unit,
+    onMinimizeMenu: () -> Unit = {}
 ) {
     var activeTab by remember { mutableStateOf("KITTYSPY") }
     var kittySpyLogs by remember { mutableStateOf("") }
@@ -42,10 +43,10 @@ fun FloatingMenuContent(
         delay(1000)
         kittySpyLogs += "[SYS]::DUMP.CS LOADED IN MEMORY\n"
         delay(1000)
-        kittySpyLogs += "[SYS]::AWAITING LIVE TRIGGERS...\n\n"
+        kittySpyLogs += "[SYS]::AWAITING LIVE TRIGGERS (e.g. click shoot, move)...\n\n"
         
         while (true) {
-            delay((2000..5000).random().toLong())
+            delay((8000..25000).random().toLong()) // Much less frequent to simulate user triggering actions
             val mockClasses = listOf("PlayerController", "WeaponManager", "GameState", "NetworkClient", "GameManager")
             val mockMethods = listOf("Update", "Shoot", "TakeDamage", "SendPacket", "Initialize")
             val rva = "0x" + (1000000..3000000).random().toString(16).uppercase()
@@ -81,8 +82,14 @@ fun FloatingMenuContent(
                     fontFamily = FontFamily.Monospace,
                     fontSize = 14.sp
                 )
-                IconButton(onClick = onCloseMenu, modifier = Modifier.size(24.dp)) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close Menu", tint = Color.Red)
+                Row {
+                    IconButton(onClick = onMinimizeMenu, modifier = Modifier.size(24.dp)) {
+                        Text("-", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(onClick = onCloseMenu, modifier = Modifier.size(24.dp)) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close Menu", tint = Color.Red)
+                    }
                 }
             }
 

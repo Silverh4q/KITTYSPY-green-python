@@ -1461,16 +1461,6 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
         }
     }
 
-    // FLOATING MENU OVERLAY
-    if (shouldShowFloatingMenu && menuTargetApp != null) {
-        Dialog(onDismissRequest = {}) {
-            FloatingMenuContent(appName = menuTargetApp?.appName ?: "UNKNOWN GAME") {
-                shouldShowFloatingMenu = false
-                menuTargetApp = null
-            }
-        }
-    }
-
     // POST SCAN CHOICE DIALOG
     if (pendingChoiceApp != null) {
         Dialog(onDismissRequest = { pendingChoiceApp = null }) {
@@ -1576,11 +1566,25 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                                              if (vipKeyInput == "L0RDSILVER777-GPM") {
                                                  // SUCCESS
                                                  showVipKeyDialog = false
-                                                 // Set state to enable floating menu globally
-                                                 shouldShowFloatingMenu = true
-                                                 menuTargetApp = pendingChoiceApp
-                                                 launchingApp = pendingChoiceApp
-                                                 pendingChoiceApp = null 
+                                                 val appToLaunch = pendingChoiceApp
+                                                 
+                                                 if (android.provider.Settings.canDrawOverlays(context)) {
+                                                     val svcIntent = android.content.Intent(context, com.kittyspace.FloatingMenuService::class.java).apply {
+                                                         putExtra("APP_NAME", appToLaunch?.appName ?: "UNKNOWN GAME")
+                                                     }
+                                                     context.startService(svcIntent)
+                                                     
+                                                     launchingApp = appToLaunch
+                                                     pendingChoiceApp = null
+                                                 } else {
+                                                     android.widget.Toast.makeText(context, "Overlay permission required for Floating Menu", android.widget.Toast.LENGTH_LONG).show()
+                                                     val permIntent = android.content.Intent(
+                                                         android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                                         android.net.Uri.parse("package:${context.packageName}")
+                                                     )
+                                                     context.startActivity(permIntent)
+                                                     // Try again after granting permission
+                                                 }
                                              } else {
                                                  vipKeyError = true
                                              }

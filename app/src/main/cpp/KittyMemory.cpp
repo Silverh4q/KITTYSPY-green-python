@@ -12,8 +12,18 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+namespace KittyDobby {
+    std::string simulateInlineHook(const char* packageName, const char* functionSymbol, uintptr_t offset) {
+        return "Hook simulated for symbol: " + std::string(functionSymbol);
+    }
+}
+
 namespace KittyMemory {
 
+    std::string simulatePatch(const char* packageName, uintptr_t address, const char* hexBytes) {
+        return "Patch simulated: " + std::string(hexBytes);
+    }
+    
     std::vector<MemoryRegion> getMemoryMaps() {
         std::vector<MemoryRegion> regions;
         std::ifstream maps("/proc/self/maps");

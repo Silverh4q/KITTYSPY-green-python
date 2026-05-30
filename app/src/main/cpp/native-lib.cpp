@@ -138,4 +138,49 @@ Java_com_kittyspace_NativeDumper_dobyInlineHookSimulation(
 
     return env->NewStringUTF(result.c_str());
 }
+// Example function to apply a patch (placeholder for true memory patching like Dobby or raw memory writes)
+// Normally you'd read /proc/self/maps or parse ELF/PE memory space to offset and apply mprotect.
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_kittyspace_NativeManager_applyPatch(
+        JNIEnv* env,
+        jobject /* this */,
+        jlong offset,
+        jstring hexData) {
+    const char *hex_str = env->GetStringUTFChars(hexData, nullptr);
+    LOGI("Received patch request at offset: 0x%llX with bytes: %s", offset, hex_str);
+    
+    // TODO: Implement actual memory patch logic using `mprotect` and `memcpy` on target offset.
+    // Example pseudocode:
+    // void* target_address = base_address + offset;
+    // mprotect(PAGE_ALIGN(target_address), PAGE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC);
+    // write_bytes_from_hex(target_address, hex_str);
 
+    env->ReleaseStringUTFChars(hexData, hex_str);
+    return JNI_TRUE; // Returning true indicating success for now.
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_kittyspace_NativeManager_restorePatch(
+        JNIEnv* env,
+        jobject /* this */,
+        jlong offset) {
+    LOGI("Received restore request at offset: 0x%llX", offset);
+    // TODO: Implement restore using saved original bytes
+    return JNI_TRUE;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_kittyspace_NativeManager_applyHook(
+        JNIEnv* env,
+        jobject /* this */,
+        jlong offset,
+        jstring methodName) {
+    const char *method_str = env->GetStringUTFChars(methodName, nullptr);
+    LOGI("Requested to hook %s at offset: 0x%llX", method_str, offset);
+    
+    // TODO: Implement inline hooking, for example using DobbyHook:
+    // DobbyHook((void*)(base_address + offset), (void*)MyHookedFunction, (void**)&OriginalFunction);
+
+    env->ReleaseStringUTFChars(methodName, method_str);
+    return JNI_TRUE;
+}

@@ -440,6 +440,10 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
     // Target automatic scanning variables to feed dumper inputs on selected app click
     var activeScanningApp by remember { mutableStateOf<KittyAppEntity?>(null) }
     var pendingChoiceApp by remember { mutableStateOf<KittyAppEntity?>(null) }
+    // STATE FOR FLOATING MENU
+    var shouldShowFloatingMenu by remember { mutableStateOf(false) }
+    var menuTargetApp by remember { mutableStateOf<KittyAppEntity?>(null) }
+    
     var scanStatusText by remember { mutableStateOf("") }
     var scanErrorDialogText by remember { mutableStateOf<String?>(null) }
 
@@ -1419,6 +1423,16 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
         }
     }
 
+    // FLOATING MENU OVERLAY
+    if (shouldShowFloatingMenu && menuTargetApp != null) {
+        Dialog(onDismissRequest = {}) {
+            FloatingMenuContent(appName = menuTargetApp?.appName ?: "UNKNOWN GAME") {
+                shouldShowFloatingMenu = false
+                menuTargetApp = null
+            }
+        }
+    }
+
     // POST SCAN CHOICE DIALOG
     if (pendingChoiceApp != null) {
         Dialog(onDismissRequest = { pendingChoiceApp = null }) {
@@ -1471,6 +1485,76 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("2. LAUNCH (INJECT)", color = Color(0xFF00E676), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    
+                    // NEW: LAUNCH WITH MENU
+                    var showVipKeyDialog by remember { mutableStateOf(false) }
+                    var vipKeyInput by remember { mutableStateOf("") }
+                    var vipKeyError by remember { mutableStateOf(false) }
+                    
+                    Button(
+                        onClick = { showVipKeyDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = BackgroundBlack),
+                        border = BorderStroke(1.dp, Color(0xFFFFFF00)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("4. LAUNCH WITH MENU", color = Color(0xFFFFFF00), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                    }
+                    
+                    if (showVipKeyDialog) {
+                         Dialog(onDismissRequest = { showVipKeyDialog = false; vipKeyInput = ""; vipKeyError = false }) {
+                             Card(
+                                 modifier = Modifier.fillMaxWidth(),
+                                 colors = CardDefaults.cardColors(containerColor = BackgroundBlack),
+                                 border = BorderStroke(1.dp, Color(0xFFB388FF))
+                             ) {
+                                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                     Text("ENTER VIP ACCESS KEY", color = Color(0xFFB388FF), fontFamily = FontFamily.Monospace)
+                                     Spacer(modifier = Modifier.height(16.dp))
+                                     
+                                     OutlinedTextField(
+                                         value = vipKeyInput,
+                                         onValueChange = { vipKeyInput = it; vipKeyError = false },
+                                         label = { Text("VIP KEY", color = TextMuted, fontSize = 10.sp) },
+                                         colors = OutlinedTextFieldDefaults.colors(
+                                             unfocusedBorderColor = BoundaryGray,
+                                             focusedBorderColor = Color(0xFF00E676),
+                                             focusedTextColor = Color(0xFF00E676),
+                                             unfocusedTextColor = TextLight
+                                         ),
+                                         singleLine = true,
+                                         modifier = Modifier.fillMaxWidth(),
+                                         isError = vipKeyError
+                                     )
+                                     
+                                     if (vipKeyError) {
+                                         Text("INVALID VIP OVERRIDE KEY.", color = AccentPink, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+                                     }
+                                     
+                                     Spacer(modifier = Modifier.height(16.dp))
+                                     Button(
+                                         onClick = {
+                                             if (vipKeyInput == "LORDSILVER") {
+                                                 // SUCCESS
+                                                 showVipKeyDialog = false
+                                                 // Set state to enable floating menu globally
+                                                 shouldShowFloatingMenu = true
+                                                 menuTargetApp = pendingChoiceApp
+                                                 launchingApp = pendingChoiceApp
+                                                 pendingChoiceApp = null 
+                                             } else {
+                                                 vipKeyError = true
+                                             }
+                                         },
+                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB388FF)),
+                                         modifier = Modifier.fillMaxWidth()
+                                     ) {
+                                         Text("VERIFY & LOAD MENU", color = BackgroundBlack, fontFamily = FontFamily.Monospace)
+                                     }
+                                 }
+                             }
+                         }
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     

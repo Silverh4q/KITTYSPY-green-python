@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 
 // Mock memory logs
 val MOCK_GAME_LOGS = listOf(
@@ -32,7 +33,28 @@ fun FloatingMenuContent(
     onCloseMenu: () -> Unit
 ) {
     var activeTab by remember { mutableStateOf("KITTYSPY") }
-    var kittySpyLogs by remember { mutableStateOf(MOCK_GAME_LOGS.joinToString("\n\n")) }
+    var kittySpyLogs by remember { mutableStateOf("") }
+    
+    // Simulate dynamic anti-split mapping and RVA hooking
+    LaunchedEffect(Unit) {
+        delay(1500)
+        kittySpyLogs += "[SYS]::ANTISPLIT BYPASS COMPLETE\n"
+        delay(1000)
+        kittySpyLogs += "[SYS]::DUMP.CS LOADED IN MEMORY\n"
+        delay(1000)
+        kittySpyLogs += "[SYS]::AWAITING LIVE TRIGGERS...\n\n"
+        
+        while (true) {
+            delay((2000..5000).random().toLong())
+            val mockClasses = listOf("PlayerController", "WeaponManager", "GameState", "NetworkClient", "GameManager")
+            val mockMethods = listOf("Update", "Shoot", "TakeDamage", "SendPacket", "Initialize")
+            val rva = "0x" + (1000000..3000000).random().toString(16).uppercase()
+            val offset = "0x" + (100000..500000).random().toString(16).uppercase()
+            
+            val log = "--CLASS : ${mockClasses.random()}\n| METHOD: ${mockMethods.random()}\n| RVA: $rva\n| OFFSET: $offset\n|---------------------------"
+            kittySpyLogs += "$log\n\n"
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -158,10 +180,20 @@ fun KittySpyTab(appName: String, logs: String, onClear: () -> Unit) {
     }
 }
 
+val PREDEFINED_PATCHES = listOf(
+    "INT: 99999999 (32-bit)" to "FF E0 F5 05",
+    "INT: 99999999 (64-bit)" to "FF E0 F5 05 00 00 00 00",
+    "FLOAT: 50.0 (32-bit)" to "00 00 48 42",
+    "FLOAT: 100.0 (32-bit)" to "00 00 C8 42",
+    "FLOAT: 50.0 (64-bit)" to "00 00 00 00 00 00 49 40",
+    "NOP / RET" to "C0 03 5F D6"
+)
+
 @Composable
 fun OffsetPatchTab() {
     var offset by remember { mutableStateOf("") }
     var hex by remember { mutableStateOf("") }
+    var showOptions by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -174,9 +206,47 @@ fun OffsetPatchTab() {
         OutlinedTextField(
             value = hex,
             onValueChange = { hex = it },
-            label = { Text("Hex Patch (e.g. C0 03 5F D6)", fontSize = 10.sp) },
+            label = { Text("Hex Patch", fontSize = 10.sp) },
             modifier = Modifier.fillMaxWidth().height(56.dp)
         )
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Button(
+            onClick = { showOptions = !showOptions },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF262C40)),
+            modifier = Modifier.fillMaxWidth().height(32.dp)
+        ) {
+            Text("Select Predefined Hex", fontSize = 10.sp)
+        }
+        
+        if (showOptions) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .background(Color(0xFF08090C))
+                    .border(1.dp, Color(0xFF262C40))
+                    .padding(4.dp)
+            ) {
+                items(PREDEFINED_PATCHES.size) { index ->
+                    val patch = PREDEFINED_PATCHES[index]
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                hex = patch.second
+                                showOptions = false
+                            }
+                            .padding(vertical = 4.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(patch.first, color = Color(0xFF00E676), fontSize = 10.sp, modifier = Modifier.weight(1f))
+                        Text(patch.second, color = Color(0xFF94A3B8), fontSize = 8.sp)
+                    }
+                }
+            }
+        }
+        
         Spacer(modifier = Modifier.height(16.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),

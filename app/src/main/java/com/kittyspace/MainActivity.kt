@@ -88,13 +88,51 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
+                var showSplash by remember { mutableStateOf(true) }
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = BackgroundBlack
                 ) {
-                    KittyDumperMainScreen()
+                    if (showSplash) {
+                        SplashScreen(onTimeout = { showSplash = false })
+                    } else {
+                        KittyDumperMainScreen()
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SplashScreen(onTimeout: () -> Unit) {
+    LaunchedEffect(Unit) {
+        delay(3000)
+        onTimeout()
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundBlack),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            GlowPawPrint(modifier = Modifier.size(120.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+            CyberGlitchText(
+                text = "KITTYSPY",
+                color = AccentPink,
+                fontSize = 42.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "THE KITTY SPACE VIRTUAL ENVIRONMENT FOR ULTIMATE MODDERS...",
+                color = TerminalGreen,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
         }
     }
 }
@@ -1535,7 +1573,7 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                                      Spacer(modifier = Modifier.height(16.dp))
                                      Button(
                                          onClick = {
-                                             if (vipKeyInput == "LORDSILVER") {
+                                             if (vipKeyInput == "L0RDSILVER777-GPM") {
                                                  // SUCCESS
                                                  showVipKeyDialog = false
                                                  // Set state to enable floating menu globally

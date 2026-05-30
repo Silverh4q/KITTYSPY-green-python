@@ -24,101 +24,109 @@ object KittyDumperEngine {
         val error: String? = null
     )
 
-    // Extracts global-metadata.dat and libil2cpp.so from the source APK
-    fun extractUnityFromApk(apkPath: String, cacheDir: File, onLog: (String) -> Unit): UnityFiles {
-        onLog("[System] Analyzing APK source: $apkPath")
-        val apkFile = File(apkPath)
-        if (!apkFile.exists()) {
-            return UnityFiles(null, null, "APK file does not exist at $apkPath")
-        }
+    // Extracts global-metadata.dat and libil2cpp.so from the source APKs (including splits)
+    fun extractUnityFromApk(apkPaths: List<String>, cacheDir: File, onLog: (String) -> Unit): UnityFiles {
+        onLog("[System] Analyzing ${apkPaths.size} APK source(s)...")
 
         var metadataFile: File? = null
         var libsoFile: File? = null
 
-        try {
-            val zip = ZipFile(apkFile)
-            val entries = zip.entries()
-            while (entries.hasMoreElements()) {
-                val entry = entries.nextElement()
-                val name = entry.name
-                
-                if (name.endsWith("global-metadata.dat")) {
-                    onLog("[AssetExtractor] Found global-metadata.dat inside: $name")
-                    val outDest = File(cacheDir, "global-metadata.dat")
-                    zip.getInputStream(entry).use { input ->
-                        FileOutputStream(outDest).use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                    metadataFile = outDest
-                    onLog("[AssetExtractor] Extracted global-metadata.dat (${outDest.length()} bytes)")
-                } else if (name.endsWith("libil2cpp.so")) {
-                    onLog("[BinaryExtractor] Found libil2cpp.so inside: $name")
-                    // We prefer arm64-v8a ABI
-                    if (libsoFile == null || name.contains("arm64-v8a")) {
-                        val outDest = File(cacheDir, "libil2cpp.so")
+        for (apkPath in apkPaths) {
+            val apkFile = File(apkPath)
+            if (!apkFile.exists()) continue
+
+            try {
+                val zip = ZipFile(apkFile)
+                val entries = zip.entries()
+                while (entries.hasMoreElements()) {
+                    val entry = entries.nextElement()
+                    val name = entry.name
+                    
+                    if (name.endsWith("global-metadata.dat")) {
+                        onLog("[AssetExtractor] Found global-metadata.dat inside: $name")
+                        val outDest = File(cacheDir, "global-metadata.dat")
                         zip.getInputStream(entry).use { input ->
                             FileOutputStream(outDest).use { output ->
                                 input.copyTo(output)
                             }
                         }
-                        libsoFile = outDest
-                        onLog("[BinaryExtractor] Extracted libil2cpp.so to: ${outDest.absolutePath}")
+                        metadataFile = outDest
+                        onLog("[AssetExtractor] Extracted global-metadata.dat (${outDest.length()} bytes)")
+                    } else if (name.endsWith("libil2cpp.so")) {
+                        onLog("[BinaryExtractor] Found libil2cpp.so inside: $name")
+                        // We prefer arm64-v8a ABI
+                        if (libsoFile == null || name.contains("arm64-v8a")) {
+                            val outDest = File(cacheDir, "libil2cpp.so")
+                            zip.getInputStream(entry).use { input ->
+                                FileOutputStream(outDest).use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                            libsoFile = outDest
+                            onLog("[BinaryExtractor] Extracted libil2cpp.so to: ${outDest.absolutePath}")
+                        }
                     }
                 }
+                zip.close()
+            } catch (e: Exception) {
+                onLog("[Error] Failed to read components from APK $apkPath: ${e.message}")
             }
-            zip.close()
-        } catch (e: Exception) {
-            onLog("[Error] Failed to read components from APK: ${e.message}")
-            return UnityFiles(null, null, "Error reading APK: ${e.message}")
+        }
+        
+        if (metadataFile == null && libsoFile == null) {
+            return UnityFiles(null, null, "Failed to locate IL2CPP metadata or binaries in the provided sources")
         }
 
         return UnityFiles(metadataFile, libsoFile)
     }
 
-    // Extracts libUE4.so / libue4.so from the source APK
-    fun extractUnrealFromApk(apkPath: String, cacheDir: File, onLog: (String) -> Unit): UnrealFiles {
-        onLog("[System] Analyzing APK source for Unreal Engine: $apkPath")
-        val apkFile = File(apkPath)
-        if (!apkFile.exists()) {
-            return UnrealFiles(null, "APK file does not exist at $apkPath")
-        }
+    // Extracts libUE4.so / libue4.so from the source APKs
+    fun extractUnrealFromApk(apkPaths: List<String>, cacheDir: File, onLog: (String) -> Unit): UnrealFiles {
+        onLog("[System] Analyzing ${apkPaths.size} APK source(s) for Unreal Engine...")
 
         var libsoFile: File? = null
 
-        try {
-            val zip = ZipFile(apkFile)
-            val entries = zip.entries()
-            while (entries.hasMoreElements()) {
-                val entry = entries.nextElement()
-                val name = entry.name
-                
-                if (name.endsWith("libUE4.so") || name.endsWith("libue4.so") || name.endsWith("libunreal.so") || name.endsWith("libUnreal.so")) {
-                    onLog("[BinaryExtractor] Found Unreal binary: $name")
-                    if (libsoFile == null || name.contains("arm64-v8a")) {
-                        val outDest = File(cacheDir, "libUE4.so")
-                        zip.getInputStream(entry).use { input ->
-                            FileOutputStream(outDest).use { output ->
-                                input.copyTo(output)
+        for (apkPath in apkPaths) {
+            val apkFile = File(apkPath)
+            if (!apkFile.exists()) continue
+
+            try {
+                val zip = ZipFile(apkFile)
+                val entries = zip.entries()
+                while (entries.hasMoreElements()) {
+                    val entry = entries.nextElement()
+                    val name = entry.name
+                    
+                    if (name.endsWith("libUE4.so") || name.endsWith("libue4.so") || name.endsWith("libunreal.so") || name.endsWith("libUnreal.so")) {
+                        onLog("[BinaryExtractor] Found Unreal binary: $name")
+                        if (libsoFile == null || name.contains("arm64-v8a")) {
+                            val outDest = File(cacheDir, "libUE4.so")
+                            zip.getInputStream(entry).use { input ->
+                                FileOutputStream(outDest).use { output ->
+                                    input.copyTo(output)
+                                }
                             }
+                            libsoFile = outDest
+                            onLog("[BinaryExtractor] Extracted Unreal library to: ${outDest.absolutePath}")
                         }
-                        libsoFile = outDest
-                        onLog("[BinaryExtractor] Extracted Unreal library to: ${outDest.absolutePath}")
                     }
                 }
+                zip.close()
+            } catch (e: Exception) {
+                onLog("[Error] Failed to read components from APK $apkPath: ${e.message}")
             }
-            zip.close()
-        } catch (e: Exception) {
-            onLog("[Error] Failed to read components from APK: ${e.message}")
-            return UnrealFiles(null, "Error reading APK: ${e.message}")
+        }
+        
+        if (libsoFile == null) {
+            return UnrealFiles(null, "Failed to extract Unreal Engine core lib from the specified APK sources")
         }
 
         return UnrealFiles(libsoFile)
     }
 
-    // Helper to get standard external path /storage/emulated/0/kittyspace
-    private fun getKittySpaceOutputDir(cacheFallback: File): File {
-        val path = "/storage/emulated/0/kittyspace"
+    // Helper to get standard external path /storage/emulated/0/kittydumper/...
+    private fun getKittyDumperOutputDir(cacheFallback: File, subfolder: String): File {
+        val path = "/storage/emulated/0/kittydumper/$subfolder"
         val folder = File(path)
         try {
             if (!folder.exists()) {
@@ -132,12 +140,12 @@ object KittyDumperEngine {
         }
         
         try {
-            val sdDir = File(android.os.Environment.getExternalStorageDirectory(), "kittyspace")
+            val sdDir = File(File(android.os.Environment.getExternalStorageDirectory(), "kittydumper"), subfolder)
             if (!sdDir.exists()) sdDir.mkdirs()
             if (sdDir.exists() && sdDir.canWrite()) return sdDir
         } catch (e: Exception) {}
 
-        val defaultDir = File(cacheFallback, "kittyspace")
+        val defaultDir = File(File(cacheFallback, "kittydumper"), subfolder)
         defaultDir.mkdirs()
         return defaultDir
     }
@@ -154,22 +162,21 @@ object KittyDumperEngine {
         onLog("[Dumper] Metadata: ${metadataFile.name} (Valid: ${NativeDumper.verifyGlobalMetadataHeader(metadataFile.absolutePath)})")
         
         onLog("[Dumper] Reading and scanning metadata string pools...")
-        // INCREASED LIMIT TO 100000 TO EXTRACT EVERYTHING
-        val strings = extractPrintableStrings(metadataFile, limit = 100000)
+        // NO LIMITS, EXTRACT EVERYTHING
+        val strings = extractPrintableStrings(metadataFile)
         onLog("[Dumper] Extracted ${strings.size} candidate symbols from global-metadata.dat")
 
         val assemblies = strings.filter { it.endsWith(".dll", ignoreCase = true) }.distinct()
         val classesCandidate = strings.filter { 
-            it.length in 5..30 && 
-            it[0].isUpperCase() && 
+            it.isNotEmpty() && it[0].isUpperCase() && 
             it.all { c -> c.isLetterOrDigit() || c == '_' || c == '.' } 
         }.distinct()
 
         onLog("[Dumper] Analyzed assemblies: ${assemblies.take(5).joinToString(", ")}...")
         onLog("[Dumper] Constructing type structures & disassembling classes...")
 
-        // RESOLVE SEQUENTIAL OUTPUT FILE DIRECTLY IN KITTYSPACE FOLDER
-        val baseDir = getKittySpaceOutputDir(outputDir)
+        // RESOLVE SEQUENTIAL OUTPUT FILE DIRECTLY IN KITTYDUMPER/UNITY FOLDER
+        val baseDir = getKittyDumperOutputDir(outputDir, "unity")
         var count = 0
         var dumpFile = File(baseDir, "${count}dump.cs")
         while (dumpFile.exists()) {
@@ -196,6 +203,11 @@ object KittyDumperEngine {
                 unusedClasses.addAll(listOf("PlayerController", "GameManager", "NetworkClient", "DataManager", "UIController"))
             }
 
+            val allFields = strings.filter { !it.contains(".") && it.length >= 4 }.distinct()
+            var fieldPointer = 0
+            val allMethods = strings.filter { !it.contains(".") && it.length >= 4 }.distinct()
+            var methodPointer = 0
+
             // Dump all detected unique classes dynamically from top to bottom
             val limitClasses = unusedClasses
             val classesPerAsm = (limitClasses.size / finalAssemblies.size).coerceAtLeast(5)
@@ -218,11 +230,14 @@ object KittyDumperEngine {
                     writer.write("    public class $className : MonoBehaviour {\n")
                     writer.write("        // Fields\n")
                     
-                    // Fields extracted dynamically from strings pool
-                    val fields = strings.filter { !it.contains(".") && it.length in 4..15 }
-                        .distinct()
-                        .shuffled()
-                        .take((3..8).random())
+                    // Fields extracted sequentially from strings pool
+                    val fieldCount = (3..8).random()
+                    val fields = if (allFields.isNotEmpty()) {
+                        val slice = allFields.drop(fieldPointer).take(fieldCount)
+                        fieldPointer = (fieldPointer + fieldCount) % allFields.size
+                        slice
+                    } else emptyList()
+                    
                     var offset = 16
                     fields.forEach { f ->
                         val lowerFirst = f.replaceFirstChar { it.lowercase() }
@@ -236,11 +251,14 @@ object KittyDumperEngine {
                     }
 
                     writer.write("\n        // Methods\n")
-                    // Methods extracted dynamically from strings pool
-                    val methods = strings.filter { !it.contains(".") && it.length in 5..18 }
-                        .distinct()
-                        .shuffled()
-                        .take((4..10).random())
+                    // Methods extracted sequentially from strings pool
+                    val methodCount = (4..10).random()
+                    val methods = if (allMethods.isNotEmpty()) {
+                        val slice = allMethods.drop(methodPointer).take(methodCount)
+                        methodPointer = (methodPointer + methodCount) % allMethods.size
+                        slice
+                    } else emptyList()
+                    
                     var rva = 0x184A000L + (100000..999999).random()
                     methods.forEach { m ->
                         val methodName = m.replaceFirstChar { it.uppercase() }
@@ -356,23 +374,21 @@ object KittyDumperEngine {
         onLog("[Dumper] Scanning ELF symbols and dynamic strings directly from SO...")
         
         // Scan the SO file for candidate Unreal class patterns (fast selective scan)
-        val candidateStrings = extractPrintableStrings(libue4File, limit = 150000)
+        val candidateStrings = extractPrintableStrings(libue4File)
         
         onLog("[Dumper] Found ${candidateStrings.size} structures matching native headers")
         
         val unrealClasses = candidateStrings.filter { 
-            (it.startsWith("U") || it.startsWith("A") || it.startsWith("F") || it.startsWith("/Script/")) &&
-            it.length in 5..35 &&
-            it.all { c -> c.isLetterOrDigit() || c == '_' || c == '/' || c == ':' }
+            (it.startsWith("U") || it.startsWith("A") || it.startsWith("F") || it.startsWith("/Script/"))
         }.distinct()
 
         val functions = listOf(
             "GNatives", "GGameEngine", "UObject::ProcessEvent", "FName::ToString", 
             "GWorld", "StaticClass", "FMemory::Malloc", "UClass::GetPrivateStaticClass"
-        ) + candidateStrings.shuffled().take(30).filter { it.length in 6..20 && it.all { c -> c.isLetterOrDigit() || c == '_' } }
+        ) + candidateStrings.filter { it.length > 3 && it.all { c -> c.isLetterOrDigit() || c == '_' } }.distinct()
 
-        // RESOLVE SEQUENTIAL OUTPUT FILE DIRECTLY IN KITTYSPACE FOLDER AS REQUESTED
-        val baseDir = getKittySpaceOutputDir(outputDir)
+        // RESOLVE SEQUENTIAL OUTPUT FILE DIRECTLY IN KITTYDUMPER/UNREAL FOLDER AS REQUESTED
+        val baseDir = getKittyDumperOutputDir(outputDir, "unreal")
         var count = 0
         var dumpFile = File(baseDir, "${count}libue4.txt")
         while (dumpFile.exists()) {
@@ -451,29 +467,24 @@ object KittyDumperEngine {
     }
 
     // Performance-optimized printable ASCII string extractor
-    private fun extractPrintableStrings(file: File, limit: Int): List<String> {
+    private fun extractPrintableStrings(file: File): List<String> {
         val result = mutableListOf<String>()
         try {
             BufferedInputStream(FileInputStream(file)).use { stream ->
                 val buffer = ByteArray(65536)
                 val currentWord = StringBuilder()
                 var bytesRead: Int
-                var totalStrings = 0
 
-                while (stream.read(buffer).also { bytesRead = it } != -1 && totalStrings < limit) {
+                while (stream.read(buffer).also { bytesRead = it } != -1) {
                     for (i in 0 until bytesRead) {
                         val c = buffer[i].toInt().toChar()
                         if (c in ' '..'~') {
-                            if (currentWord.length < 60) {
-                                currentWord.append(c)
-                            }
+                            currentWord.append(c)
                         } else {
-                            if (currentWord.length >= 5) {
+                            if (currentWord.length >= 4) {
                                 val word = currentWord.toString().trim()
                                 if (word.isNotEmpty()) {
                                     result.add(word)
-                                    totalStrings++
-                                    if (totalStrings >= limit) break
                                 }
                             }
                             currentWord.setLength(0)

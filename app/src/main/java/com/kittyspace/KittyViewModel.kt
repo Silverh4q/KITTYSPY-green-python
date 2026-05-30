@@ -75,8 +75,9 @@ class KittyViewModel(application: Application) : AndroidViewModel(application) {
                         val name = pm.getApplicationLabel(appInfo).toString()
                         val packageName = appInfo.packageName
                         val sourceDir = appInfo.sourceDir ?: appInfo.publicSourceDir ?: ""
+                        val splitSourceDirs = appInfo.splitSourceDirs?.toList()
                         val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-                        InstalledAppInfo(packageName, name, sourceDir, isSystem)
+                        InstalledAppInfo(packageName, name, sourceDir, splitSourceDirs, isSystem)
                     }.sortedBy { it.appName }
                 }
                 _installedApps.value = list

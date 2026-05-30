@@ -119,11 +119,20 @@ class KittyDumpService : Service() {
         updateNotificationProgress("Extracting APK...", "Analyzing Unity APK components for $appName...")
         KittyDumpManager.addLog("[System] Initializing dump operation for $appName (Unity Model)")
 
+        val allApks = mutableListOf<String>()
+        allApks.add(sourceDir)
+        try {
+            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+            appInfo.splitSourceDirs?.forEach { allApks.add(it) }
+        } catch (e: Exception) {
+            // Ignore
+        }
+
         val cacheDir = File(cacheDir, "unity_extract")
         if (cacheDir.exists()) cacheDir.deleteRecursively()
         cacheDir.mkdirs()
 
-        val result = KittyDumperEngine.extractUnityFromApk(sourceDir, cacheDir) { logLine ->
+        val result = KittyDumperEngine.extractUnityFromApk(allApks, cacheDir) { logLine ->
             KittyDumpManager.addLog(logLine)
         }
 
@@ -172,11 +181,20 @@ class KittyDumpService : Service() {
         updateNotificationProgress("Extracting APK...", "Analyzing Unreal APK components for $appName...")
         KittyDumpManager.addLog("[System] Initializing dump operation for $appName (Unreal Engine Model)")
 
+        val allApks = mutableListOf<String>()
+        allApks.add(sourceDir)
+        try {
+            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+            appInfo.splitSourceDirs?.forEach { allApks.add(it) }
+        } catch (e: Exception) {
+            // Ignore
+        }
+
         val cacheDir = File(cacheDir, "unreal_extract")
         if (cacheDir.exists()) cacheDir.deleteRecursively()
         cacheDir.mkdirs()
 
-        val result = KittyDumperEngine.extractUnrealFromApk(sourceDir, cacheDir) { logLine ->
+        val result = KittyDumperEngine.extractUnrealFromApk(allApks, cacheDir) { logLine ->
             KittyDumpManager.addLog(logLine)
         }
 

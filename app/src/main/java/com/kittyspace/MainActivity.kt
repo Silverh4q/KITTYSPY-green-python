@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -162,7 +163,7 @@ fun GlowPawPrint(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun CyberGlitchText(text: String, modifier: Modifier = Modifier, color: Color = Color(0xFF00E676)) {
+fun CyberGlitchText(text: String, modifier: Modifier = Modifier, color: Color = Color(0xFF00E676), fontSize: androidx.compose.ui.unit.TextUnit = 24.sp) {
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
     var glitchText by remember { mutableStateOf(text) }
@@ -194,30 +195,30 @@ fun CyberGlitchText(text: String, modifier: Modifier = Modifier, color: Color = 
         Text(
             text = glitchText,
             color = Color.Red.copy(alpha = 0.5f),
-            fontSize = 25.sp,
+            fontSize = fontSize,
             fontWeight = FontWeight.ExtraBold,
             fontFamily = FontFamily.Monospace,
-            letterSpacing = 3.sp,
+            letterSpacing = 2.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.offset(x = (-1.5).dp + offsetX.dp, y = (0.5).dp + offsetY.dp)
         )
         Text(
             text = glitchText,
             color = Color.Cyan.copy(alpha = 0.5f),
-            fontSize = 25.sp,
+            fontSize = fontSize,
             fontWeight = FontWeight.ExtraBold,
             fontFamily = FontFamily.Monospace,
-            letterSpacing = 3.sp,
+            letterSpacing = 2.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.offset(x = (1.5).dp - offsetX.dp, y = (-0.5).dp - offsetY.dp)
         )
         Text(
             text = glitchText,
             color = color,
-            fontSize = 24.sp,
+            fontSize = fontSize,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
-            letterSpacing = 3.sp,
+            letterSpacing = 2.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.offset(x = offsetX.dp, y = offsetY.dp)
         )
@@ -239,7 +240,7 @@ fun CyberHackerCard(
             .border(
                 border = BorderStroke(
                     width = 1.6.dp,
-                    color = if (isSelected) Color(0xFF00E676) else Color.White.copy(alpha = 0.09f)
+                    color = if (isSelected) Color(0xFFB388FF) else Color.White.copy(alpha = 0.09f)
                 ),
                 shape = RoundedCornerShape(topStart = 16.dp, bottomEnd = 16.dp)
             )
@@ -249,13 +250,13 @@ fun CyberHackerCard(
                 val w = size.width
                 val h = size.height
                 drawLine(
-                    color = Color(0xFF00E676).copy(alpha = 0.25f),
+                    color = Color(0xFFB388FF).copy(alpha = 0.25f),
                     start = Offset(w - 14.dp.toPx(), 4.dp.toPx()),
                     end = Offset(w - 4.dp.toPx(), 4.dp.toPx()),
                     strokeWidth = 2.dp.toPx()
                 )
                 drawLine(
-                    color = Color(0xFF00E676).copy(alpha = 0.25f),
+                    color = Color(0xFFB388FF).copy(alpha = 0.25f),
                     start = Offset(w - 4.dp.toPx(), 4.dp.toPx()),
                     end = Offset(w - 4.dp.toPx(), 14.dp.toPx()),
                     strokeWidth = 2.dp.toPx()
@@ -282,68 +283,37 @@ fun KittyspyAngledHeader() {
                 .padding(bottom = 2.dp)
         )
         
-        // "KITTYSPY" title with white angled bordering container lines
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                
-                val path = Path().apply {
-                    // Start left
-                    moveTo(w * 0.04f, h * 0.1f)
-                    // Slope down to flat bottom
-                    lineTo(w * 0.21f, h * 0.85f)
-                    // Flat baseline segment right
-                    lineTo(w * 0.79f, h * 0.85f)
-                    // Slope up to top right
-                    lineTo(w * 0.96f, h * 0.1f)
-                }
-                
-                drawPath(
-                    path = path,
-                    color = Color.White,
-                    style = Stroke(width = 3.dp.toPx())
-                )
-            }
-            
-            CyberGlitchText(
-                text = "KITTYSPY_OS",
-                modifier = Modifier.padding(bottom = 6.dp),
-                color = Color(0xFF00E676)
-            )
-        }
-        
         Spacer(modifier = Modifier.height(14.dp))
         
-        // "KITTYSPACE" text and thick neon separator
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "> KITTY_SPACE <",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                letterSpacing = 4.sp,
-                textAlign = TextAlign.Center
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.5.dp)
-                    .background(Color(0xFF00E676))
-            )
-        }
+        CyberGlitchText(
+            text = "--------K I T T Y S P Y---------",
+            modifier = Modifier.padding(bottom = 6.dp),
+            color = Color(0xFF00E676),
+            fontSize = 16.sp
+        )
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Text(
+            text = "KITTYSPACE",
+            color = Color.White,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Black,
+            fontFamily = FontFamily.Serif,
+            letterSpacing = 8.sp,
+            textAlign = TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text(
+            text = "kitty virtual sandbox isolation program",
+            color = TextMuted,
+            fontSize = 12.sp,
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 1.sp,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -494,17 +464,31 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
         var hasUnity = false
         var hasUnreal = false
 
+        val allApks = mutableListOf<String>()
+        allApks.add(apkFile.absolutePath)
         try {
-            java.util.zip.ZipFile(apkFile).use { zip ->
-                val entries = zip.entries()
-                while (entries.hasMoreElements()) {
-                    val entry = entries.nextElement()
-                    val pathName = entry.name
-                    if (pathName.endsWith("global-metadata.dat", ignoreCase = true)) {
-                        hasUnity = true
-                    }
-                    if (pathName.contains("libUE4.so", ignoreCase = true) || pathName.contains("libue4.so", ignoreCase = true)) {
-                        hasUnreal = true
+            val pm = context.packageManager
+            val appInfo = pm.getApplicationInfo(app.packageName, android.content.pm.PackageManager.GET_META_DATA)
+            appInfo.splitSourceDirs?.forEach { allApks.add(it) }
+        } catch (e: Exception) {
+            // Ignore if we can't find splits
+        }
+
+        try {
+            for (apkPath in allApks) {
+                val file = File(apkPath)
+                if (!file.exists()) continue
+                java.util.zip.ZipFile(file).use { zip ->
+                    val entries = zip.entries()
+                    while (entries.hasMoreElements()) {
+                        val entry = entries.nextElement()
+                        val pathName = entry.name
+                        if (pathName.endsWith("global-metadata.dat", ignoreCase = true)) {
+                            hasUnity = true
+                        }
+                        if (pathName.contains("libUE4.so", ignoreCase = true) || pathName.contains("libue4.so", ignoreCase = true)) {
+                            hasUnreal = true
+                        }
                     }
                 }
             }
@@ -523,7 +507,7 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                 val targetCacheDir = File(context.cacheDir, "auto_detect_unity")
                 targetCacheDir.mkdirs()
                 
-                val result = com.kittyspace.dumper.KittyDumperEngine.extractUnityFromApk(app.sourceDir, targetCacheDir) { line ->
+                val result = com.kittyspace.dumper.KittyDumperEngine.extractUnityFromApk(allApks, targetCacheDir) { line ->
                     scanStatusText += "$line\n"
                 }
                 
@@ -562,7 +546,7 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                 val targetCacheDir = File(context.cacheDir, "auto_detect_unreal")
                 targetCacheDir.mkdirs()
                 
-                val result = com.kittyspace.dumper.KittyDumperEngine.extractUnrealFromApk(app.sourceDir, targetCacheDir) { line ->
+                val result = com.kittyspace.dumper.KittyDumperEngine.extractUnrealFromApk(allApks, targetCacheDir) { line ->
                     scanStatusText += "$line\n"
                 }
                 
@@ -672,78 +656,78 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                 // GLASSY CONTAINER GRID (Only "+" add button and actual games added)
                 val gridComposables = mutableListOf<@Composable () -> Unit>()
                 
-                // Bold "+" button inside cyber hacker card
-                gridComposables.add {
-                    CyberHackerCard(
-                        onClick = { showAddAppDialog = true }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add game button",
-                            tint = Color(0xFF00E676),
-                            modifier = Modifier.size(54.dp)
-                        )
-                    }
-                }
-                
-                // Process added apps mapping them into exact same cyber design
-                kittySpaceApps.forEach { app ->
-                    val appIcon = rememberAppIcon(context, app.packageName)
-                    val isSelected = selectedSpaceApp?.packageName == app.packageName
-                    
-                    gridComposables.add {
-                        CyberHackerCard(
-                            isSelected = isSelected,
-                            onClick = {
-                                // Trigger automated file extraction scanner & auto-fill inputs directly
-                                activeScanningApp = app
-                            }
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(8.dp)
+                        // Bold "+" button inside cyber hacker card
+                        gridComposables.add {
+                            CyberHackerCard(
+                                onClick = { showAddAppDialog = true }
                             ) {
-                                Box(modifier = Modifier.size(46.dp)) {
-                                    if (appIcon != null) {
-                                        Image(
-                                            bitmap = appIcon,
-                                            contentDescription = "Icon",
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(RoundedCornerShape(8.dp))
-                                        )
-                                    } else {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(BoundaryGray, RoundedCornerShape(8.dp)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                Icons.Default.PlayArrow,
-                                                contentDescription = null,
-                                                tint = TextMuted,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                                
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                Text(
-                                    text = app.appName.uppercase(),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = Color(0xFF00E676),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Center
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Add game button",
+                                    tint = Color(0xFFB388FF),
+                                    modifier = Modifier.size(54.dp)
                                 )
+                            }
+                        }
+                        
+                        // Process added apps mapping them into exact same cyber design
+                        kittySpaceApps.forEach { app ->
+                            val appIcon = rememberAppIcon(context, app.packageName)
+                            val isSelected = selectedSpaceApp?.packageName == app.packageName
+                            
+                            gridComposables.add {
+                                CyberHackerCard(
+                                    isSelected = isSelected,
+                                    onClick = {
+                                        // Trigger automated file extraction scanner & auto-fill inputs directly
+                                        activeScanningApp = app
+                                    }
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(8.dp)
+                                    ) {
+                                        Box(modifier = Modifier.size(46.dp)) {
+                                            if (appIcon != null) {
+                                                Image(
+                                                    bitmap = appIcon,
+                                                    contentDescription = "Icon",
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                )
+                                            } else {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .background(BoundaryGray, RoundedCornerShape(8.dp)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.PlayArrow,
+                                                        contentDescription = null,
+                                                        tint = TextMuted,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        
+                                        Text(
+                                            text = app.appName.uppercase(),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = FontFamily.Monospace,
+                                            color = Color(0xFFB388FF),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            textAlign = TextAlign.Center
+                                        )
                                 Text(
                                     text = "0x" + app.packageName.hashCode().toString(16).uppercase().take(4) + " :: SEC",
                                     fontSize = 8.sp,
@@ -782,26 +766,59 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                 
                 // Display composables as a robust 3-column scrollable layout grid
                 val rows = gridComposables.chunked(3)
-                LazyColumn(
+                
+                // Box containing applications and add button with glowing dark violet border
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(vertical = 14.dp)
+                        .weight(1f)
+                        .padding(horizontal = 4.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .shadow(elevation = 16.dp, spotColor = Color(0xFF6200EA), ambientColor = Color(0xFF6200EA))
+                        .border(
+                            border = BorderStroke(2.dp, Brush.sweepGradient(listOf(Color(0xFF6200EA), Color(0xFFB388FF), Color(0xFF6200EA)))),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .background(Color(0xFF04060C)) // darker background for box
                 ) {
-                    items(rows) { rowItems ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    Column(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Text(
+                            text = "select apps and games to start your program",
+                            color = Color(0xFFB388FF).copy(alpha = 0.8f),
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = 0.5.sp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp, bottom = 4.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(horizontal = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(vertical = 14.dp)
                         ) {
-                            rowItems.forEach { item ->
-                                Box(modifier = Modifier.weight(1f)) {
-                                    item()
-                                }
-                            }
-                            if (rowItems.size < 3) {
-                                repeat(3 - rowItems.size) {
-                                    Box(modifier = Modifier.weight(1f))
+                            items(rows) { rowItems ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    rowItems.forEach { item ->
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            item()
+                                        }
+                                    }
+                                    if (rowItems.size < 3) {
+                                        repeat(3 - rowItems.size) {
+                                            Box(modifier = Modifier.weight(1f))
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1318,26 +1335,28 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Home,
-                                contentDescription = "KittySpace",
-                                tint = if (isSpaceActive) Color(0xFF00E676) else TextMuted,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "KITTYSPACE",
-                                color = if (isSpaceActive) Color(0xFF00E676) else TextMuted,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 11.sp,
-                                letterSpacing = 0.5.sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Home,
+                                    contentDescription = "KittySpace",
+                                    tint = if (isSpaceActive) Color(0xFF00E676) else TextMuted,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "KITTYSPACE",
+                                    color = if (isSpaceActive) Color(0xFF00E676) else TextMuted,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 12.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
                             // Glistening active line
                             Box(
                                 modifier = Modifier
-                                    .width(28.dp)
+                                    .width(40.dp)
                                     .height(2.5.dp)
                                     .clip(RoundedCornerShape(1.dp))
                                     .background(if (isSpaceActive) Color(0xFF00E676) else Color.Transparent)
@@ -1366,26 +1385,28 @@ fun KittyDumperMainScreen(viewModel: KittyViewModel = viewModel()) {
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Build,
-                                contentDescription = "KittyDumper",
-                                tint = if (isDumperActive) Color(0xFF00E676) else TextMuted,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "KITTYDUMPER",
-                                color = if (isDumperActive) Color(0xFF00E676) else TextMuted,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 11.sp,
-                                letterSpacing = 0.5.sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Build,
+                                    contentDescription = "KittyDumper",
+                                    tint = if (isDumperActive) Color(0xFF00E676) else TextMuted,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "KITTYDUMPER",
+                                    color = if (isDumperActive) Color(0xFF00E676) else TextMuted,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 12.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
                             // Glistening active line
                             Box(
                                 modifier = Modifier
-                                    .width(28.dp)
+                                    .width(40.dp)
                                     .height(2.5.dp)
                                     .clip(RoundedCornerShape(1.dp))
                                     .background(if (isDumperActive) Color(0xFF00E676) else Color.Transparent)

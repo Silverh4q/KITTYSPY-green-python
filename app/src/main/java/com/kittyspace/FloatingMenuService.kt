@@ -85,9 +85,14 @@ class FloatingMenuService : Service() {
             setContent {
                 MyApplicationTheme {
                     FloatingMenuOverlay(
-                        appName = appName,
-                        onClose = { stopSelf() }
-                    )
+                     appName = appName,
+                    onClose = { stopSelf() },
+                    onDrag = { dx, dy ->
+                    moveMenu(dx, dy)
+                  
+                     
+                     })
+                                        
                 }
             }
         }
@@ -103,36 +108,15 @@ class FloatingMenuService : Service() {
         floatingView.setViewTreeViewModelStoreOwner(lifecycleOwner)
         floatingView.setViewTreeSavedStateRegistryOwner(lifecycleOwner)
         
-        // Handle drag events
-        floatingView.setOnTouchListener(object : View.OnTouchListener {
-            private var initialX = 0
-            private var initialY = 0
-            private var initialTouchX = 0f
-            private var initialTouchY = 0f
-            
-            override fun onTouch(v: View, event: MotionEvent): Boolean {
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        initialX = params!!.x
-                        initialY = params!!.y
-                        initialTouchX = event.rawX
-                        initialTouchY = event.rawY
-                        return false 
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        params!!.x = initialX + (event.rawX - initialTouchX).toInt()
-                        params!!.y = initialY + (event.rawY - initialTouchY).toInt()
-                        windowManager.updateViewLayout(floatingView, params)
-                        return true
-                    }
-                }
-                return false
-            }
-        })
-        
         windowManager.addView(floatingView, params)
     }
-
+         private fun moveMenu(dx: Float, dy: Float) {
+    params?.let {
+        it.x += dx.toInt()
+        it.y += dy.toInt()
+        windowManager.updateViewLayout(floatingView, it)
+    }
+}
     override fun onDestroy() {
         super.onDestroy()
         if (::floatingView.isInitialized) {
@@ -142,7 +126,12 @@ class FloatingMenuService : Service() {
 }
 
 @Composable
-fun FloatingMenuOverlay(appName: String, onClose: () -> Unit) {
+@Composable
+fun FloatingMenuOverlay(
+    appName: String,
+    onClose: () -> Unit,
+    onDrag: (Float, Float) -> Unit
+) {
     var isMinimized by remember { mutableStateOf(true) }
     
     if (isMinimized) {
@@ -158,10 +147,11 @@ fun FloatingMenuOverlay(appName: String, onClose: () -> Unit) {
         }
     } else {
         FloatingMenuContent(
-            appName = appName,
-            onCloseMenu = onClose,
-            onMinimizeMenu = { isMinimized = true }
-        )
+         appName = appName,
+         onCloseMenu = onClose,
+          onMinimizeMenu = { isMinimized = true },
+         onDrag = onDrag
+       )
     }
 }
 

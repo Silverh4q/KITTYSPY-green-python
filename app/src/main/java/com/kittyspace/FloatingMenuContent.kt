@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
@@ -19,48 +20,65 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-
-// Mock memory logs
-val MOCK_GAME_LOGS = listOf(
-    "--CLASS : WEAPON MANAGER\n| METHOD: SHOOT\n| RVA: 0x25ACF68\n| OFFSET: 0x14F56A0\n|---------------------------",
-    "--CLASS : NETWORK CLIENT\n| METHOD: SEND_PACKET\n| RVA: 0x11B340\n| OFFSET: 0x55B340\n|---------------------------",
-    "--CLASS : PLAYER_CONTROLLER\n| METHOD: JUMP\n| RVA: 0x77B010\n| OFFSET: 0x66B010\n|---------------------------"
-)
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import java.io.File
 
 @Composable
 fun FloatingMenuContent(
-    appName: String,
+    appName: String, // Treat appName as the game package name e.g. com.tencent.ig
     onCloseMenu: () -> Unit,
-    onMinimizeMenu: () -> Unit = {}
+    onMinimizeMenu: () -> Unit = {},
+    onDrag: (Float, Float) -> Unit
 ) {
     var activeTab by remember { mutableStateOf("KITTYSPY") }
     var kittySpyLogs by remember { mutableStateOf("") }
     
-    // Simulate dynamic anti-split mapping and RVA hooking
-    LaunchedEffect(Unit) {
-        delay(1500)
-        kittySpyLogs += "[SYS]::ANTISPLIT BYPASS COMPLETE\n"
-        delay(1000)
-        kittySpyLogs += "[SYS]::DUMP.CS LOADED IN MEMORY\n"
-        delay(1000)
-        kittySpyLogs += "[SYS]::AWAITING LIVE TRIGGERS (e.g. click shoot, move)...\n\n"
+    // Instead of simulation, actually attempt to read dump
+    LaunchedEffect(appName) {
+        val basePath = "/storage/emulated/0/Android/data/com.kittyspace/files/Documents/KittyDumper"
+        val unityDump = File("$basePath/Unity/$appName/kittydumper/unity/0dump.cs")
+        val unrealDump = File("$basePath/Unreal/$appName/kittydumper/unreal/0libue4.txt")
         
-        while (true) {
-            delay((8000..25000).random().toLong()) // Much less frequent to simulate user triggering actions
-            val mockClasses = listOf("PlayerController", "WeaponManager", "GameState", "NetworkClient", "GameManager")
-            val mockMethods = listOf("Update", "Shoot", "TakeDamage", "SendPacket", "Initialize")
-            val rva = "0x" + (1000000..3000000).random().toString(16).uppercase()
-            val offset = "0x" + (100000..500000).random().toString(16).uppercase()
+        kittySpyLogs += "[SYS]::CHECKING FOR GAME DUMPS...\n"
+        
+        val dumpFile = when {
+            unityDump.exists() && unityDump.canRead() -> unityDump
+            unrealDump.exists() && unrealDump.canRead() -> unrealDump
+            else -> null
+        }
+        
+        if (dumpFile == null) {
+            kittySpyLogs += "[ERROR]::Please dump game engines before inspecting!\n"
+            kittySpyLogs += "Missing:\n$unityDump\nOR\n$unrealDump\n"
+        } else {
+            kittySpyLogs += "[SYS]::FOUND GAME DUMP: ${dumpFile.name}\n"
+            kittySpyLogs += "[SYS]::PARSING ENGINE DATA...\n"
             
-            val log = "--CLASS : ${mockClasses.random()}\n| METHOD: ${mockMethods.random()}\n| RVA: $rva\n| OFFSET: $offset\n|---------------------------"
-            kittySpyLogs += "$log\n\n"
+            // In a real scenario, this would continuously read from a named pipe 
+            // or memory space hook log over socket to print live methods.
+            // Here we just read part of the dump to prove accessing it works.
+            try {
+                withContext(Dispatchers.IO) {
+                    val lines = dumpFile.useLines { it.take(20).toList() }
+                    withContext(Dispatchers.Main) {
+                        kittySpyLogs += "[SYS]::Successfully opened dump. Partial preview:\n"
+                        lines.forEach { line -> kittySpyLogs += "$line\n" }
+                        kittySpyLogs += "\n[SYS]::READY. Awaiting live triggers...\n"
+                    }
+                }
+            } catch (e: Exception) {
+                kittySpyLogs += "[ERROR]::Failed to read file: ${e.message}\n"
+            }
         }
     }
 
     Card(
         modifier = Modifier
-            .width(320.dp)
-            .height(400.dp),
+            .width(260.dp)
+            .height(300.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF090A0F)), // BackgroundBlack
         border = BorderStroke(1.dp, Color(0xFF00E676)),
         shape = RoundedCornerShape(8.dp)
@@ -70,7 +88,16 @@ fun FloatingMenuContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF131622)) // CardSlate
+                    .background(Color(0xFF131622))
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            onDrag(
+                                dragAmount.x,
+                                dragAmount.y
+                            )
+                        }
+                    }
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -105,7 +132,7 @@ fun FloatingMenuContent(
                 TabButton("HOOKING", activeTab == "HOOKING") { activeTab = "HOOKING" }
             }
 
-            Divider(color = Color(0xFF262C40)) // BoundaryGray
+            HorizontalDivider(color = Color(0xFF262C40)) // BoundaryGray
 
             // Content
             Box(
@@ -140,7 +167,7 @@ fun TabButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
 @Composable
 fun KittySpyTab(appName: String, logs: String, onClear: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize()) {
-        Text("Inspected game: $appName", color = Color(0xFF94A3B8), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+        Text("Inspected game param: $appName", color = Color(0xFF94A3B8), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
         Spacer(modifier = Modifier.height(4.dp))
 
         Box(
@@ -198,14 +225,15 @@ val PREDEFINED_PATCHES = listOf(
 
 @Composable
 fun OffsetPatchTab() {
-    var offset by remember { mutableStateOf("") }
+    var offsetString by remember { mutableStateOf("") }
     var hex by remember { mutableStateOf("") }
     var showOptions by remember { mutableStateOf(false) }
+    var patchStatus by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
-            value = offset,
-            onValueChange = { offset = it },
+            value = offsetString,
+            onValueChange = { offsetString = it },
             label = { Text("Offset (e.g. 0x12345)", fontSize = 10.sp) },
             modifier = Modifier.fillMaxWidth().height(56.dp)
         )
@@ -254,13 +282,31 @@ fun OffsetPatchTab() {
             }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+        if(patchStatus.isNotEmpty()) {
+            Text(patchStatus, color = Color(0xFF00E676), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Button(
-                onClick = { /* Patch logic */ },
+                onClick = {
+                    try {
+                        val offsetLong = if (offsetString.startsWith("0x", true)) {
+                            offsetString.drop(2).toLong(16)
+                        } else {
+                            offsetString.toLong()
+                        }
+                        // Call our actual C++ NativeManager
+                        val success = NativeManager.applyPatch(offsetLong, hex)
+                        patchStatus = if (success) "Patch Applied at offset $offsetString" else "Patch failed"
+                    } catch (e: Exception) {
+                        patchStatus = "Invalid offset format"
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
                 modifier = Modifier.weight(1f)
             ) {
@@ -268,7 +314,19 @@ fun OffsetPatchTab() {
             }
             Spacer(modifier = Modifier.width(8.dp))
             Button(
-                onClick = { /* Restore logic */ },
+                onClick = { 
+                    try {
+                        val offsetLong = if (offsetString.startsWith("0x", true)) {
+                            offsetString.drop(2).toLong(16)
+                        } else {
+                            offsetString.toLong()
+                        }
+                        val success = NativeManager.restorePatch(offsetLong)
+                        patchStatus = if(success) "Patch Restored" else "Restore failed"
+                    } catch (e: Exception) {
+                        patchStatus = "Invalid offset format"
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF262C40)),
                 modifier = Modifier.weight(1f)
             ) {
@@ -283,6 +341,7 @@ fun HookingTab() {
     var methodOffset by remember { mutableStateOf("") }
     var methodName by remember { mutableStateOf("") }
     val fields = remember { mutableStateListOf(Pair("float", "")) }
+    var hookStatus by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -329,9 +388,27 @@ fun HookingTab() {
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
+
+        if(hookStatus.isNotEmpty()) {
+            Text(hookStatus, color = Color(0xFFFF4081), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
         Row(modifier = Modifier.fillMaxWidth()) {
             Button(
-                onClick = { /* Hook logic */ },
+                onClick = { 
+                    try {
+                        val offsetLong = if (methodOffset.startsWith("0x", true)) {
+                            methodOffset.drop(2).toLong(16)
+                        } else {
+                            methodOffset.toLong()
+                        }
+                        val success = NativeManager.applyHook(offsetLong, methodName)
+                        hookStatus = if(success) "Hook applied via JNI" else "Hook failed"
+                    } catch(e: Exception) {
+                        hookStatus = "Invalid offset"
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4081)),
                 modifier = Modifier.weight(1f)
             ) {
@@ -339,7 +416,9 @@ fun HookingTab() {
             }
             Spacer(modifier = Modifier.width(8.dp))
             Button(
-                onClick = { /* Unhook logic */ },
+                onClick = { 
+                    hookStatus = "Hook removed"
+                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF262C40)),
                 modifier = Modifier.weight(1f)
             ) {
